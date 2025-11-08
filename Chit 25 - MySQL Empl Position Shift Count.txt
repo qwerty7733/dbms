@@ -1,0 +1,85 @@
+﻿CHIT 25 - MySQL Empl Position Shift Count
+
+
+-- Using tables from Chit 24: Empl, Position, Duty_alloc
+-- Additional field: shift (added to Empl table)
+
+
+-- Add shift field to Empl table
+ALTER TABLE Empl ADD COLUMN shift VARCHAR(10);
+
+
+-- Update sample data with shift information
+UPDATE Empl SET shift = 'Morning' WHERE empno = 101;
+UPDATE Empl SET shift = 'Evening' WHERE empno = 102;
+UPDATE Empl SET shift = 'Morning' WHERE empno = 103;
+UPDATE Empl SET shift = 'Night' WHERE empno = 104;
+UPDATE Empl SET shift = 'Evening' WHERE empno = 105;
+
+
+-- 1. Display employees with salary greater than average salary
+SELECT e.ename, e.sal, e.job
+FROM Empl e
+WHERE e.sal > (SELECT AVG(sal) FROM Empl);
+
+
+-- 2. Find employees earning more than any employee in department 20
+SELECT e.ename, e.sal, e.deptno
+FROM Empl e
+WHERE e.sal > ANY (SELECT sal FROM Empl WHERE deptno = 20);
+
+
+-- 3. Display employees with salary between 40000 and 60000
+SELECT ename, sal, job
+FROM Empl
+WHERE sal BETWEEN 40000 AND 60000
+ORDER BY sal;
+
+
+-- 4. Create a VIEW for salary statistics by department
+CREATE VIEW Dept_Salary_Stats AS
+SELECT 
+    deptno,
+    COUNT(*) AS emp_count,
+    AVG(sal) AS avg_salary,
+    MAX(sal) AS max_salary,
+    MIN(sal) AS min_salary,
+    SUM(sal) AS total_salary
+FROM Empl
+GROUP BY deptno;
+
+
+-- Query the view
+SELECT * FROM Dept_Salary_Stats;
+
+
+-- 5. Count of employees in each shift
+SELECT shift, COUNT(*) AS employee_count
+FROM Empl
+GROUP BY shift
+ORDER BY employee_count DESC;
+
+
+-- 6. Display employee details with position and shift information
+SELECT e.ename, e.job, e.sal, e.shift, p.posdesc, d.duty_hrs
+FROM Empl e
+INNER JOIN Duty_alloc d ON e.empno = d.empno
+INNER JOIN Position p ON d.posno = p.posno
+ORDER BY e.shift, e.ename;
+
+
+-- 7. Find the shift with maximum total salary
+SELECT shift, SUM(sal) AS total_shift_salary
+FROM Empl
+GROUP BY shift
+HAVING SUM(sal) = (
+    SELECT MAX(shift_total)
+    FROM (SELECT SUM(sal) AS shift_total FROM Empl GROUP BY shift) AS subq
+);
+
+
+-- 8. Display employees working more than average duty hours
+SELECT e.ename, e.shift, d.duty_hrs
+FROM Empl e
+INNER JOIN Duty_alloc d ON e.empno = d.empno
+WHERE d.duty_hrs > (SELECT AVG(duty_hrs) FROM Duty_alloc);
